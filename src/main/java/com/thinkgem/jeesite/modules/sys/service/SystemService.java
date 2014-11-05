@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.collect.Maps;
+import com.thinkgem.jeesite.common.config.Global;
 import com.thinkgem.jeesite.common.persistence.Page;
 import com.thinkgem.jeesite.common.security.Digests;
 import com.thinkgem.jeesite.common.service.BaseService;
@@ -68,38 +69,46 @@ public class SystemService extends BaseService  {
 	}
 	
 	public Page<User> findUser(Page<User> page, User user) {
-		DetachedCriteria dc = userDao.createDetachedCriteria();
 		User currentUser = UserUtils.getUser();
-		dc.createAlias("company", "company");
-		if (user.getCompany()!=null && StringUtils.isNotBlank(user.getCompany().getId())){
+		DetachedCriteria dc = userDao.createDetachedCriteria();
+		
+		dc.createAlias("company", "company"); 
+		if (user.getCompany() != null && StringUtils.isNotBlank(user.getCompany().getId())){
 			dc.add(Restrictions.or(
-					Restrictions.eq("company.id", user.getCompany().getId()),
-					Restrictions.like("company.parentIds", "%,"+user.getCompany().getId()+",%")
-					));
+				Restrictions.eq("company.id", user.getCompany().getId()),
+				Restrictions.like("company.parentIds", "%," + user.getCompany().getId() + ",%")
+			));
 		}
+		
 		dc.createAlias("office", "office");
-		if (user.getOffice()!=null && StringUtils.isNotBlank(user.getOffice().getId())){
+		if (user.getOffice() != null && StringUtils.isNotBlank(user.getOffice().getId())){
 			dc.add(Restrictions.or(
-					Restrictions.eq("office.id", user.getOffice().getId()),
-					Restrictions.like("office.parentIds", "%,"+user.getOffice().getId()+",%")
-					));
+				Restrictions.eq("office.id", user.getOffice().getId()),
+				Restrictions.like("office.parentIds", "%," + user.getOffice().getId() + ",%")
+			));
 		}
+		
 		// 如果不是超级管理员，则不显示超级管理员用户
 		if (!currentUser.isAdmin()){
-			dc.add(Restrictions.ne("id", "1")); 
+			dc.add(Restrictions.ne("id", "1"));  
 		}
+		
 		dc.add(dataScopeFilter(currentUser, "office", ""));
-		//System.out.println(dataScopeFilterString(currentUser, "office", ""));
+		
 		if (StringUtils.isNotEmpty(user.getLoginName())){
-			dc.add(Restrictions.like("loginName", "%"+user.getLoginName()+"%"));
+			dc.add(Restrictions.like("loginName", "%" + user.getLoginName() + "%"));
 		}
 		if (StringUtils.isNotEmpty(user.getName())){
-			dc.add(Restrictions.like("name", "%"+user.getName()+"%"));
+			dc.add(Restrictions.like("name", "%" + user.getName() + "%"));
 		}
+		
 		dc.add(Restrictions.eq(User.FIELD_DEL_FLAG, User.DEL_FLAG_NORMAL));
 		if (!StringUtils.isNotEmpty(page.getOrderBy())){
-			dc.addOrder(Order.asc("company.code")).addOrder(Order.asc("office.code")).addOrder(Order.desc("name"));
+			dc.addOrder(Order.asc("company.code"))
+			    .addOrder(Order.asc("office.code"))
+			    .addOrder(Order.desc("name"));
 		}
+		
 		return userDao.find(page, dc);
 	}
 
@@ -302,6 +311,9 @@ public class SystemService extends BaseService  {
 	}
 	
 	private void saveActiviti(Role role) {
+		if (!Global.isSynActivitiIndetity()){
+			return;
+		}
 		try{
 			if(role!=null) {
 				List<User> userList = roleDao.get(role.getId()).getUserList();
@@ -324,9 +336,11 @@ public class SystemService extends BaseService  {
 			e.printStackTrace();
 		}
 	}
-	
 
 	private void deleteActiviti(Role role) {
+		if (!Global.isSynActivitiIndetity()){
+			return;
+		}
 		try{
 			if(role!=null) {
 				List<User> userList = roleDao.get(role.getId()).getUserList();
@@ -343,6 +357,9 @@ public class SystemService extends BaseService  {
 	}
 
 	private void saveActiviti(User user) {
+		if (!Global.isSynActivitiIndetity()){
+			return;
+		}
 		try{
 			if(user!=null) {
 				String userId = ObjectUtils.toString(user.getId());
@@ -362,6 +379,9 @@ public class SystemService extends BaseService  {
 	}
 
 	private void deleteActiviti(User user) {
+		if (!Global.isSynActivitiIndetity()){
+			return;
+		}
 		try{
 			if(user!=null) {
 				String userId = ObjectUtils.toString(user.getId());
@@ -373,6 +393,9 @@ public class SystemService extends BaseService  {
 	}
 
 	private void saveActiviti(Menu menu) {
+		if (!Global.isSynActivitiIndetity()){
+			return;
+		}
 		try{
 			if(menu!=null){
 				Group group = identityService.createGroupQuery().groupId(menu.getActivitiGroupId()).singleResult();
@@ -400,7 +423,11 @@ public class SystemService extends BaseService  {
 			e.printStackTrace();
 		}
 	}
+	
 	private void deleteActiviti(String id) {
+		if (!Global.isSynActivitiIndetity()){
+			return;
+		}
 		try{
 			if(id!=null) {
 				Menu menu = menuDao.get(id);
@@ -423,6 +450,9 @@ public class SystemService extends BaseService  {
 
 	@SuppressWarnings("unchecked")
 	private void merge(User user,List<Menu> menuList) {
+		if (!Global.isSynActivitiIndetity()){
+			return;
+		}
 		try{
 			String userId = ObjectUtils.toString(user.getId());
 			List<Group> activitiGroupList = identityService.createGroupQuery().groupMember(userId).list();
